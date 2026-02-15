@@ -169,7 +169,8 @@ mcp-bridge uses a priority chain to identify LLM requests:
 | 1 | Accept header | `Accept: text/markdown` | High |
 | 2 | User-Agent | Known AI bot patterns | High |
 | 3 | Custom header | `X-LLM-Request: true` | High |
-| 4 | Custom function | Your logic | Medium |
+| 4 | IP ranges | Known AI provider IP ranges | Medium |
+| 5 | Custom function | Your logic | Medium |
 
 The `Accept: text/markdown` header is the emerging ecosystem standard, used by Claude Code, OpenCode, and backed by Cloudflare's implementation.
 
@@ -181,7 +182,7 @@ interface McpBridgeConfig {
     acceptHeader?: boolean;       // Check Accept: text/markdown (default: true)
     userAgent?: boolean;          // Check known AI user-agents (default: true)
     customHeader?: string;        // Custom header name (default: 'X-LLM-Request')
-    ipRanges?: boolean;           // Check known AI IP ranges (default: false)
+    ipRanges?: boolean;           // Check known AI IP ranges (default: true)
     custom?: (req) => boolean;    // Custom detection function
   };
 
@@ -292,6 +293,30 @@ mcp-bridge recognizes these User-Agent strings:
 | `Amazonbot` | Amazon |
 | `Bytespider` | ByteDance |
 | `BingBot` | Microsoft |
+
+## Known AI Provider IP Ranges
+
+mcp-bridge can detect LLM requests from known AI provider IP ranges (IPv4 only). This is a fallback detection method with medium confidence, as IP ranges can change and may overlap with legitimate traffic.
+
+| CIDR Range | Provider | Notes |
+|------------|----------|-------|
+| `20.15.240.64/28` | OpenAI | GPTBot crawler |
+| `40.84.180.224/28` | OpenAI | GPTBot crawler |
+| `160.79.104.0/23` | Anthropic | Claude crawlers |
+| `54.186.0.0/16` | Anthropic | Claude crawlers (AWS US-West-2) |
+| `66.249.64.0/19` | Google | Bard/Gemini crawlers |
+| `44.195.0.0/16` | Perplexity | Perplexity crawlers |
+
+**Note:** IP-based detection is less reliable than header-based methods and should be used as a fallback. AI providers may change their IP ranges without notice. Last updated: 2026-02-14.
+
+To disable IP range detection:
+```typescript
+app.use(mcpBridge({
+  detect: {
+    ipRanges: false,  // Disable IP range detection
+  },
+}));
+```
 
 ## Development
 

@@ -43,7 +43,7 @@ cd examples/express-app && pnpm dev   # uses node --watch
 
 The core pipeline is four independent, testable modules:
 
-1. **Detect** (`detector.ts`) — Priority chain: `Accept: text/markdown` → known AI User-Agent patterns → custom header (`X-LLM-Request`) → custom detection function → not LLM
+1. **Detect** (`detector.ts`) — Priority chain: `Accept: text/markdown` → known AI User-Agent patterns → custom header (`X-LLM-Request`) → IP ranges (known AI providers) → custom detection function → not LLM
 2. **Extract** (`extractor.ts`) — Parses HTML with `linkedom`, checks for `data-llm-content`/`data-llm-ignore`/`data-llm-hint` annotations, falls back to Mozilla Readability, final fallback to raw `<body>`
 3. **Convert** (`converter.ts`) — Turndown-based HTML-to-markdown with YAML frontmatter from metadata. Strips scripts, styles, nav, footer, forms, SVG.
 4. **Headers** (`headers.ts`) — Builds `Content-Type: text/markdown`, `Vary`, `X-Content-Source`, optional IETF AIPREF `Content-Usage`, optional token count.
@@ -56,5 +56,6 @@ Both framework adapters wrap the entire transformation in try/catch and fall bac
 - **Next.js adapter** uses internal `fetch()` with bypass header (edge middleware can't access response body directly)
 - **Glob matching differs**: Express uses `picomatch`, Next.js uses a hand-rolled `globToRegex` — potential behavioral inconsistency
 - **Known agents** (`agents.ts`): 14 AI user-agent patterns (GPTBot, ClaudeBot, PerplexityBot, etc.) as case-insensitive regexes
+- **IP ranges** (`detector.ts`): 6 known AI provider IP ranges in CIDR notation (IPv4 only), used with medium confidence as fallback detection
 - **Token estimation** (`tokens.ts`): simple `ceil(length / 4)` heuristic
 - **Version `0.1.0`** is hardcoded in `headers.ts` rather than read from package.json
