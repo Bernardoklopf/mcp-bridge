@@ -107,6 +107,89 @@ describe('detectLLM', () => {
     });
   });
 
+  describe('IP range detection', () => {
+    it('detects OpenAI IP range', () => {
+      const result = detectLLM({
+        headers: {},
+        ip: '20.15.240.65',
+      });
+      expect(result.isLLM).toBe(true);
+      expect(result.method).toBe('ip-range');
+      expect(result.confidence).toBe('medium');
+      expect(result.agent).toBe('OpenAI');
+    });
+
+    it('detects Anthropic IP range', () => {
+      const result = detectLLM({
+        headers: {},
+        ip: '160.79.104.50',
+      });
+      expect(result.isLLM).toBe(true);
+      expect(result.method).toBe('ip-range');
+      expect(result.agent).toBe('Anthropic');
+    });
+
+    it('detects Google IP range', () => {
+      const result = detectLLM({
+        headers: {},
+        ip: '66.249.64.100',
+      });
+      expect(result.isLLM).toBe(true);
+      expect(result.agent).toBe('Google');
+    });
+
+    it('does not detect non-AI IP', () => {
+      const result = detectLLM({
+        headers: {},
+        ip: '192.168.1.1',
+      });
+      expect(result.isLLM).toBe(false);
+    });
+
+    it('can be disabled via config', () => {
+      const result = detectLLM(
+        {
+          headers: {},
+          ip: '20.15.240.65',
+        },
+        { ipRanges: false },
+      );
+      expect(result.isLLM).toBe(false);
+    });
+
+    it('handles missing IP gracefully', () => {
+      const result = detectLLM({ headers: {} });
+      expect(result.isLLM).toBe(false);
+    });
+
+    it('respects priority chain (Accept header over IP)', () => {
+      const result = detectLLM({
+        headers: { accept: 'text/markdown' },
+        ip: '20.15.240.65',
+      });
+      expect(result.method).toBe('accept-header');
+    });
+
+    it('respects priority chain (User-Agent over IP)', () => {
+      const result = detectLLM({
+        headers: { 'user-agent': 'GPTBot/1.0' },
+        ip: '20.15.240.65',
+      });
+      expect(result.method).toBe('user-agent');
+    });
+
+    it('IP range takes priority over custom function', () => {
+      const result = detectLLM(
+        {
+          headers: {},
+          ip: '20.15.240.65',
+        },
+        { custom: () => true },
+      );
+      expect(result.method).toBe('ip-range');
+    });
+  });
+
   describe('Custom detection function', () => {
     it('uses custom function when provided', () => {
       const result = detectLLM(
